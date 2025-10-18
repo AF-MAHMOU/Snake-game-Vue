@@ -1,0 +1,196 @@
+/* Global Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* Prevent scrolling when game is active */
+body.game-active {
+  overflow: hidden;
+}
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  outline: none; /* Remove focus outline */
+}
+
+.game:focus {
+  outline: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .menu {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+  
+  .menu h1 {
+    font-size: 2rem;
+  }
+  
+  .difficulty-btn {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+  
+  .hud {
+    min-width: auto;
+    width: 100%;
+    margin: 0 1rem 1rem 1rem;
+  }
+  
+  .hud-row {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .hud-item {
+    min-width: 60px;
+  }
+  
+  .game-canvas {
+    width: 90vw;
+    height: 90vw;
+    max-width: 560px;
+    max-height: 560px;
+  }
+  
+  .controls {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .control-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .menu h1 {
+    font-size: 1.5rem;
+  }
+  
+  .difficulty-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+  }
+  
+  .diff-details {
+    font-size: 0.8rem;
+  }
+  
+  .hud {
+    padding: 0.75rem;
+  }
+  
+  .hud-item {
+    min-width: 50px;
+  }
+  
+  .label {
+    font-size: 0.8rem;
+  }
+  
+  .value {
+    font-size: 1rem;
+  }
+}
+
+/* Animation Classes */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+
+.slide-enter-active, .slide-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.slide-enter-from {
+  transform: translateY(-20px);
+}
+
+.slide-leave-to {
+  transform: translateY(20px);
+}
+
+/* Button Hover Effects */
+button {
+  transition: all 0.3s ease;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+/* Focus Styles for Accessibility */
+button:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Countdown Styles */
+.overlay.countdown {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.countdown-number {
+  font-size: 8rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  color: #4CAF50;
+  text-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
