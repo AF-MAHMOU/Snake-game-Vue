@@ -88,152 +88,162 @@ import GameBoard from './components/GameBoard.vue'
 
 export default {
   name: 'App',
-  components: {
-    HUD,
-    GameBoard
+  components: { HUD, GameBoard },
+
+  data() {
+    return {
+      tickInterval: null,
+      secondInterval: null,
+      lastSpeedMs: null, // track current tick speed (for Survivor)
+    }
   },
+
   computed: {
     ...mapState(['status', 'config', 'score', 'gridSize', 'countdown']),
-    ...mapGetters(['length'])
+    ...mapGetters(['length']),
+
+    // Ensure Survivor shows in menu (if you need it elsewhere in template)
+    difficulties() {
+      const order = ['easy', 'medium', 'hard', 'survivor']
+      return order.filter(d => this.config && this.config[d])
+    }
   },
+
   watch: {
     status(newStatus) {
-      // Add/remove body class to prevent scrolling during game
+      // prevent page scroll during game screens
       if (newStatus === 'running' || newStatus === 'paused' || newStatus === 'countdown') {
         document.body.classList.add('game-active')
       } else {
         document.body.classList.remove('game-active')
       }
+    },
+
+    // Survivor: speed increases every +100 score → restart interval at new speed
+    score() {
+      if (this.$store.state.difficulty !== 'survivor') return
+      if (this.status !== 'running') return
+      const speedMs = this.$store.getters.speedMs
+      if (speedMs !== this.lastSpeedMs) {
+        this.startIntervals()
+      }
     }
-  },
+  }, // <<< IMPORTANT COMMA BEFORE methods
+
   methods: {
     ...mapActions(['start', 'tick', 'second', 'fetchEmojis']),
-    
+
     startGame(difficulty) {
       this.start(difficulty)
-      this.startIntervals()
-      // Focus the game container to capture keyboard input
-      this.$nextTick(() => {
-        if (this.$refs.gameContainer) {
-          this.$refs.gameContainer.focus()
+
+      // Survivor: skip countdown → run immediately
+      if (this.$store.state.difficulty === 'survivor') {
+        if (this.$store._mutations?.SET_COUNTDOWN) {
+          this.$store.commit('SET_COUNTDOWN', 0)
         }
+        this.$store.commit('SET_STATUS', 'running')
+      }
+
+      this.startIntervals()
+
+      // focus to capture keyboard input
+      this.$nextTick(() => {
+        if (this.$refs.gameContainer) this.$refs.gameContainer.focus()
       })
     },
-    
+
     pauseGame() {
       this.$store.commit('SET_STATUS', 'paused')
       this.stopIntervals()
     },
-    
+
     resumeGame() {
       this.$store.commit('SET_STATUS', 'running')
       this.startIntervals()
-      // Refocus the game container
       this.$nextTick(() => {
-        if (this.$refs.gameContainer) {
-          this.$refs.gameContainer.focus()
-        }
+        if (this.$refs.gameContainer) this.$refs.gameContainer.focus()
       })
     },
-    
+
     restartGame() {
       this.start(this.$store.state.difficulty)
+      if (this.$store.state.difficulty === 'survivor') {
+        if (this.$store._mutations?.SET_COUNTDOWN) this.$store.commit('SET_COUNTDOWN', 0)
+        this.$store.commit('SET_STATUS', 'running')
+      }
       this.startIntervals()
     },
-    
+
     backToMenu() {
       this.$store.commit('SET_STATUS', 'menu')
       this.stopIntervals()
     },
-    
+
     startIntervals() {
       this.stopIntervals()
-      
+
       const speedMs = this.$store.getters.speedMs
+      this.lastSpeedMs = speedMs
+
+      // main game loop
       this.tickInterval = setInterval(() => {
         this.tick()
       }, speedMs)
-      
-      this.secondInterval = setInterval(() => {
-        this.second()
-      }, 1000)
+
+      // only run 1-second timer if not survivor
+      if (this.$store.state.difficulty !== 'survivor') {
+        this.secondInterval = setInterval(() => {
+          this.second()
+        }, 1000)
+      }
     },
-    
+
     stopIntervals() {
-      if (this.tickInterval) {
-        clearInterval(this.tickInterval)
-        this.tickInterval = null
-      }
-      if (this.secondInterval) {
-        clearInterval(this.secondInterval)
-        this.secondInterval = null
-      }
+      if (this.tickInterval) { clearInterval(this.tickInterval); this.tickInterval = null }
+      if (this.secondInterval) { clearInterval(this.secondInterval); this.secondInterval = null }
     },
-    
+
     handleKeydown(event) {
       if (this.status === 'menu') return
-      
+
       const key = event.key.toLowerCase()
+      const gameKeys = ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ']
+      if (gameKeys.includes(key)) { event.preventDefault(); event.stopPropagation() }
+
       let dir = null
-      
-      // Prevent default behavior for game controls to avoid page scrolling
-      const gameKeys = ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ']
-      if (gameKeys.includes(key)) {
-        event.preventDefault()
-        event.stopPropagation()
-      }
-      
       switch (key) {
-        case 'w':
-        case 'arrowup':
-          dir = { x: 0, y: -1 }
-          break
-        case 's':
-        case 'arrowdown':
-          dir = { x: 0, y: 1 }
-          break
-        case 'a':
-        case 'arrowleft':
-          dir = { x: -1, y: 0 }
-          break
-        case 'd':
-        case 'arrowright':
-          dir = { x: 1, y: 0 }
-          break
+        case 'w': case 'arrowup':    dir = { x: 0, y: -1 }; break
+        case 's': case 'arrowdown':  dir = { x: 0, y: 1 }; break
+        case 'a': case 'arrowleft':  dir = { x: -1, y: 0 }; break
+        case 'd': case 'arrowright': dir = { x: 1, y: 0 }; break
         case ' ':
-          if (this.status === 'running') {
-            this.pauseGame()
-          } else if (this.status === 'paused') {
-            this.resumeGame()
-          }
+          if (this.status === 'running') this.pauseGame()
+          else if (this.status === 'paused') this.resumeGame()
           break
       }
-      
-      if (dir) {
-        this.$store.commit('QUEUE_DIR', dir)
-      }
+      if (dir) this.$store.commit('QUEUE_DIR', dir)
     },
-    
+
     handleWindowBlur() {
-      if (this.status === 'running') {
-        this.pauseGame()
-      }
+      if (this.status === 'running') this.pauseGame()
     }
   },
-  
+
   mounted() {
     this.fetchEmojis()
     document.addEventListener('keydown', this.handleKeydown)
     window.addEventListener('blur', this.handleWindowBlur)
   },
-  
+
   beforeUnmount() {
     this.stopIntervals()
     document.removeEventListener('keydown', this.handleKeydown)
     window.removeEventListener('blur', this.handleWindowBlur)
   }
+  
 }
 </script>
+
 
 <style scoped>
 .app {
@@ -265,11 +275,16 @@ export default {
   color: #555;
 }
 
+
 .difficulty-buttons {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
+.difficulty-btn.survivor {
+  border-color: #007bff;
+}
+
 
 .difficulty-btn {
   padding: 1rem 2rem;
@@ -379,4 +394,5 @@ export default {
   padding: 0.75rem 1.5rem;
   font-size: 1.1rem;
 }
+
 </style>
