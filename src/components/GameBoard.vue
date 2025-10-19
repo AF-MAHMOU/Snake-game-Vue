@@ -7,6 +7,9 @@
       class="game-canvas"
       :class="{ 'flash': isFlashing }"
     ></canvas>
+    
+    <!-- Particle effects container -->
+    <div class="particles-container" ref="particlesContainer"></div>
   </div>
 </template>
 
@@ -17,18 +20,26 @@ export default {
   name: 'GameBoard',
   data() {
     return {
-      canvasSize: 560,
       isFlashing: false,
-      audioContext: null,
       sounds: {}
     }
   },
   computed: {
-    ...mapState(['snake', 'apples', 'gridSize', 'status', 'emojiMap']),
+    ...mapState(['snake', 'apples', 'gridSize', 'status', 'emojiMap', 'difficulty', 'volume', 'lastSoundPlayed']),
     ...mapGetters(['currentConfig']),
+    
+    
+    canvasSize() {
+      return 560
+    },
     
     cellSize() {
       return Math.floor(this.canvasSize / this.gridSize)
+    },
+
+    currentBorders() {
+      const config = this.$store.state.config[this.difficulty]
+      return config.borders || { top: true, bottom: true, left: true, right: true }
     }
   },
   watch: {
@@ -47,61 +58,157 @@ export default {
     status(newStatus) {
       if (newStatus === 'gameover') {
         this.flash()
-        this.playSound('bump')
         this.vibrate([200, 80, 200])
       } else if (newStatus === 'won') {
-        this.playSound('levelup')
         this.vibrate([100, 50, 100, 50, 200])
       }
-    }
+    },
+    volume(newVolume) {
+      // Update volume of all sounds when volume changes
+      if (this.sounds) {
+        Object.values(this.sounds).forEach(sound => {
+          sound.volume = newVolume / 100
+        })
+      }
+    },
+    lastSoundPlayed(newSound) {
+      // Play sound when store triggers it
+      if (newSound && newSound.sound) {
+        this.playSound(newSound.sound)
+        
+        // Trigger visual effects based on sound type
+        if (newSound.sound === 'eat') {
+          // Create particle effect at random position (simulating apple position)
+          const x = Math.random() * this.canvasSize
+          const y = Math.random() * this.canvasSize
+          this.createAppleParticles(x, y)
+        } else if (newSound.sound === 'levelup') {
+          this.createLevelUpEffect()
+        }
+      }
+    },
+    
   },
   mounted() {
     this.initAudio()
     this.render()
+    
+    // Preload audio for instant playback
+    setTimeout(() => {
+      this.preloadAudio()
+    }, 100)
+    
+    // Enable audio on first user interaction
+    const enableAudioOnInteraction = () => {
+      this.enableAudio()
+      this.preloadAudio() // Also preload on first interaction
+      document.removeEventListener('click', enableAudioOnInteraction)
+      document.removeEventListener('keydown', enableAudioOnInteraction)
+    }
+    
+    document.addEventListener('click', enableAudioOnInteraction)
+    document.addEventListener('keydown', enableAudioOnInteraction)
   },
+  
+  beforeUnmount() {
+    // Clean up audio
+    Object.values(this.sounds).forEach(sound => {
+      sound.pause()
+      sound.src = ''
+    })
+  },
+  
   methods: {
     initAudio() {
       try {
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)()
-        
-        // Create simple sound effects using Web Audio API
+        // Load actual MP3 sound files
         this.sounds = {
-          eat: this.createTone(800, 0.1),
-          bump: this.createTone(200, 0.3),
-          levelup: this.createTone(600, 0.5)
+          eat: new Audio('/sfx/eat.mp3'),
+          bump: new Audio('/sfx/bump.mp3'),
+          levelup: new Audio('/sfx/levelup.mp3')
         }
+        
+        // Set volume and optimize for immediate playback
+        Object.values(this.sounds).forEach(sound => {
+          sound.volume = (this.volume || 70) / 100
+          sound.preload = 'auto'
+          // Force immediate loading and prepare for instant playback
+          sound.load()
+          // Set to loop false to ensure clean playback
+          sound.loop = false
+        })
+        
+        console.log('Sound effects loaded successfully')
       } catch (error) {
-        console.log('Audio not supported')
+        console.log('Audio not supported:', error)
       }
     },
-    
-    createTone(frequency, duration) {
-      return () => {
-        if (!this.audioContext) return
-        
-        const oscillator = this.audioContext.createOscillator()
-        const gainNode = this.audioContext.createGain()
-        
-        oscillator.connect(gainNode)
-        gainNode.connect(this.audioContext.destination)
-        
-        oscillator.frequency.value = frequency
-        oscillator.type = 'sine'
-        
-        gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime)
-        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration)
-        
-        oscillator.start(this.audioContext.currentTime)
-        oscillator.stop(this.audioContext.currentTime + duration)
+
+    enableAudio() {
+      // Enable audio context on first user interaction
+      Object.values(this.sounds).forEach(sound => {
+        if (sound.load) {
+          sound.load()
+        }
+      })
+    },
+
+    preloadAudio() {
+      // Aggressively preload all audio files for instant playback
+      if (this.sounds) {
+        Object.values(this.sounds).forEach(sound => {
+          // Force load and prepare for immediate playback
+          sound.load()
+          // Try to play and immediately pause to "warm up" the audio
+          const playPromise = sound.play()
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              sound.pause()
+              sound.currentTime = 0
+            }).catch(() => {
+              // Ignore errors during preload
+            })
+          }
+        })
       }
     },
     
     playSound(soundName) {
-      if (this.sounds[soundName]) {
+      if (this.sounds && this.sounds[soundName]) {
         try {
-          this.sounds[soundName]()
+          const sound = this.sounds[soundName]
+          // Pause any current playback to ensure clean restart
+          sound.pause()
+          
+          // Set the starting position based on sound type
+          if (soundName === 'eat') {
+            // Start from 1.2 seconds in (where the crunch sound is)
+            sound.currentTime = 1.2
+          } else if (soundName === 'bump') {
+            // Start from 0.8 seconds in for bump sound
+            sound.currentTime = 0.8
+          } else {
+            // Level up sound from beginning
+            sound.currentTime = 0
+          }
+          
+          // Play immediately
+          const playPromise = sound.play()
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              // Stop the sound after a short duration (except for levelup which plays fully)
+              if (soundName !== 'levelup') {
+                setTimeout(() => {
+                  sound.pause()
+                  sound.currentTime = 0
+                }, soundName === 'eat' ? 800 : 1200) // 0.8s for eat (1.2 to 2.0), 1.2s for bump (0.8 to 2.0)
+              }
+            }).catch(error => {
+              console.log('Sound playback failed:', error)
+            })
+          }
         } catch (error) {
-          console.log('Sound playback failed')
+          console.log('Sound playback failed:', error)
         }
       }
     },
@@ -122,6 +229,56 @@ export default {
         this.isFlashing = false
       }, 200)
     },
+
+    createAppleParticles(x, y) {
+      // Create particle effect when apple is eaten
+      const particleCount = 8
+      const container = this.$refs.particlesContainer
+      
+      for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div')
+        particle.className = 'apple-particle'
+        
+        // Random position around the apple
+        const angle = (i / particleCount) * Math.PI * 2
+        const distance = 20 + Math.random() * 30
+        const particleX = x + Math.cos(angle) * distance
+        const particleY = y + Math.sin(angle) * distance
+        
+        particle.style.left = `${particleX}px`
+        particle.style.top = `${particleY}px`
+        
+        // Random colors for particles
+        const colors = ['#27ae60', '#2ecc71', '#f39c12', '#e67e22']
+        particle.style.background = colors[Math.floor(Math.random() * colors.length)]
+        
+        container.appendChild(particle)
+        
+        // Remove particle after animation
+        setTimeout(() => {
+          if (particle.parentNode) {
+            particle.parentNode.removeChild(particle)
+          }
+        }, 600)
+      }
+    },
+
+    createLevelUpEffect() {
+      // Create celebration effect for level up
+      const container = this.$refs.particlesContainer
+      const effect = document.createElement('div')
+      effect.className = 'levelup-effect'
+      effect.innerHTML = '✨ LEVEL UP! ✨'
+      
+      container.appendChild(effect)
+      
+      setTimeout(() => {
+        if (effect.parentNode) {
+          effect.parentNode.removeChild(effect)
+        }
+      }, 2000)
+    },
+    
     
     render() {
       const canvas = this.$refs.canvas
@@ -148,6 +305,45 @@ export default {
         ctx.beginPath()
         ctx.moveTo(0, pos)
         ctx.lineTo(this.canvasSize, pos)
+        ctx.stroke()
+      }
+
+      // Draw border highlights for blocked borders
+      ctx.lineWidth = 3
+      
+      // Top border
+      if (this.currentBorders.top) {
+        ctx.strokeStyle = '#F44336'
+        ctx.beginPath()
+        ctx.moveTo(0, 0)
+        ctx.lineTo(this.canvasSize, 0)
+        ctx.stroke()
+      }
+      
+      // Bottom border
+      if (this.currentBorders.bottom) {
+        ctx.strokeStyle = '#F44336'
+        ctx.beginPath()
+        ctx.moveTo(0, this.canvasSize)
+        ctx.lineTo(this.canvasSize, this.canvasSize)
+        ctx.stroke()
+      }
+      
+      // Left border
+      if (this.currentBorders.left) {
+        ctx.strokeStyle = '#F44336'
+        ctx.beginPath()
+        ctx.moveTo(0, 0)
+        ctx.lineTo(0, this.canvasSize)
+        ctx.stroke()
+      }
+      
+      // Right border
+      if (this.currentBorders.right) {
+        ctx.strokeStyle = '#F44336'
+        ctx.beginPath()
+        ctx.moveTo(this.canvasSize, 0)
+        ctx.lineTo(this.canvasSize, this.canvasSize)
         ctx.stroke()
       }
       
@@ -201,19 +397,6 @@ export default {
           ctx.fill()
         }
       })
-    },
-    
-    checkAppleCollision() {
-      // This method is called when the snake moves
-      const head = this.snake[0]
-      const appleIndex = this.apples.findIndex(apple => 
-        apple.x === head.x && apple.y === head.y
-      )
-      
-      if (appleIndex !== -1) {
-        this.playSound('eat')
-        this.vibrate([30])
-      }
     }
   }
 }
@@ -242,4 +425,5 @@ export default {
   50% { filter: brightness(1.5); }
   100% { filter: brightness(1); }
 }
+
 </style>

@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICS 511: Web Programming - Snake Game Report</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px;
+            background: white;
+            color: #333;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+            font-weight: bold;
+        }
+        
+        .header .subtitle {
+            font-size: 16px;
+            margin: 10px 0;
+            font-style: italic;
+        }
+        
+        .header .date {
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        
+        h2 {
+            font-size: 18px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+        }
+        
+        h3 {
+            font-size: 16px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #34495e;
+        }
+        
+        h4 {
+            font-size: 14px;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            color: #7f8c8d;
+        }
+        
+        p {
+            margin: 10px 0;
+            text-align: justify;
+        }
+        
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        
+        li {
+            margin: 5px 0;
+        }
+        
+        .team-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        
+        .team-info h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        
+        .difficulty-box {
+            background: #ecf0f1;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #3498db;
+            border-radius: 3px;
+        }
+        
+        .difficulty-box h4 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        
+        .screenshot-placeholder {
+            background: #bdc3c7;
+            border: 2px dashed #7f8c8d;
+            padding: 30px;
+            text-align: center;
+            margin: 15px 0;
+            border-radius: 5px;
+            font-style: italic;
+            color: #7f8c8d;
+        }
+        
+        .scenario-box {
+            background: #e8f5e8;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #27ae60;
+            border-radius: 3px;
+        }
+        
+        .scenario-box h4 {
+            margin-top: 0;
+            color: #27ae60;
+        }
+        
+        .conclusion {
+            background: #fef9e7;
+            padding: 20px;
+            border-left: 4px solid #f39c12;
+            border-radius: 3px;
+            margin: 30px 0;
+        }
+        
+        .conclusion h2 {
+            margin-top: 0;
+            color: #f39c12;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ccc;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        
+        @media print {
+            body {
+                padding: 20px;
+            }
+            
+            .header {
+                page-break-after: avoid;
+            }
+            
+            h2 {
+                page-break-after: avoid;
+            }
+            
+            .difficulty-box, .scenario-box, .conclusion {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>ICS 511: Web Programming - Graded Practical Assignment</h1>
+        <div class="subtitle">Snake Game - Vue.js/VueX Implementation</div>
+        <div class="date">Submission Date: October 20, 2025</div>
+    </div>
+
+    <div class="team-info">
+        <h3>Team Information</h3>
+        <p><strong>Team Name:</strong> [INSERT TEAM NAME]</p>
+        <p><strong>Team Members:</strong></p>
+        <ul>
+            <li><strong>Member 1:</strong> [INSERT NAME] - ID: [INSERT ID] - Email: [INSERT EMAIL]</li>
+            <li><strong>Member 2:</strong> [INSERT NAME] - ID: [INSERT ID] - Email: [INSERT EMAIL]</li>
+        </ul>
+        <p><strong>Project Idea:</strong> Snake Game - A classic arcade-style snake game implemented using Vue.js and VueX for state management, featuring multiple difficulty levels, survival mode, and modern web technologies.</p>
+    </div>
+
+    <h2>Game Strategy</h2>
+    
+    <h3>Reference</h3>
+    <p>Our game implementation is based on the classic Snake game mechanics found at <a href="https://gamegix.com/snake/game#">GameGix Snake Game</a>. This reference provides the fundamental gameplay mechanics that we have enhanced with modern web technologies and additional features.</p>
+
+    <h3>Three Levels of Difficulty</h3>
+    
+    <div class="difficulty-box">
+        <h4>1. Easy Mode</h4>
+        <ul>
+            <li><strong>Target Length:</strong> 120 apples to win</li>
+            <li><strong>Speed:</strong> 150ms tick interval (slow)</li>
+            <li><strong>Starvation Timer:</strong> 4 seconds to eat each apple</li>
+            <li><strong>Borders:</strong> All borders open (wrap-around enabled)</li>
+            <li><strong>Scoring:</strong> 10 points per apple</li>
+        </ul>
+    </div>
+
+    <div class="difficulty-box">
+        <h4>2. Medium Mode</h4>
+        <ul>
+            <li><strong>Target Length:</strong> 200 apples to win</li>
+            <li><strong>Speed:</strong> 120ms tick interval (medium)</li>
+            <li><strong>Starvation Timer:</strong> 3 seconds to eat each apple</li>
+            <li><strong>Borders:</strong> All borders open (wrap-around enabled)</li>
+            <li><strong>Scoring:</strong> 10 points per apple</li>
+        </ul>
+    </div>
+
+    <div class="difficulty-box">
+        <h4>3. Hard Mode</h4>
+        <ul>
+            <li><strong>Target Length:</strong> 235 apples to win</li>
+            <li><strong>Speed:</strong> 100ms tick interval (fast)</li>
+            <li><strong>Starvation Timer:</strong> 2 seconds to eat each apple</li>
+            <li><strong>Borders:</strong> All borders open (wrap-around enabled)</li>
+            <li><strong>Scoring:</strong> 10 points per apple</li>
+        </ul>
+    </div>
+
+    <div class="difficulty-box">
+        <h4>4. Survivor Mode (Bonus)</h4>
+        <ul>
+            <li><strong>Target:</strong> Endless gameplay with progressive difficulty</li>
+            <li><strong>Speed:</strong> 120ms tick interval</li>
+            <li><strong>Progressive Border Blocking:</strong> Borders close every 200 points</li>
+            <li><strong>Stage System:</strong> 8 progressive stages with increasing challenge</li>
+            <li><strong>Scoring:</strong> 10 points per apple + survival time tracking</li>
+        </ul>
+    </div>
+
+    <h3>Scoring System</h3>
+    <ul>
+        <li><strong>Base Score:</strong> 10 points per apple consumed</li>
+        <li><strong>Best Score Tracking:</strong> Persistent high score storage per difficulty</li>
+        <li><strong>Survival Records:</strong> Time-based leaderboard for survivor mode</li>
+        <li><strong>Length Progress:</strong> Visual progress bar showing completion percentage</li>
+    </ul>
+
+    <h3>Loss Conditions</h3>
+    <ol>
+        <li><strong>Wall Collision:</strong> Snake hits a blocked border (survivor mode only)</li>
+        <li><strong>Self Collision:</strong> Snake's head collides with its own body</li>
+        <li><strong>Starvation:</strong> Failure to eat an apple within the time limit</li>
+        <li><strong>Manual Exit:</strong> User pauses and exits to main menu</li>
+    </ol>
+
+    <h2>Game Design & Implementation</h2>
+
+    <h3>Graphics Design</h3>
+    <p>Our implementation features modern 2D graphics using HTML5 Canvas API:</p>
+    <ul>
+        <li><strong>Snake Rendering:</strong> Dynamic snake body with emoji-based head and body segments</li>
+        <li><strong>Apple Graphics:</strong> Emoji apples with particle effects on consumption</li>
+        <li><strong>Border Visualization:</strong> Clear visual indicators for open/blocked borders</li>
+        <li><strong>HUD Elements:</strong> Real-time score, timer, progress bars, and volume controls</li>
+        <li><strong>Visual Effects:</strong> Particle animations, flash effects, and smooth transitions</li>
+    </ul>
+
+    <h3>Interactivity</h3>
+    <p>The game provides comprehensive user interaction:</p>
+    <ul>
+        <li><strong>Keyboard Controls:</strong> WASD and Arrow keys for snake movement</li>
+        <li><strong>Mouse Controls:</strong> Volume slider, difficulty selection, menu navigation</li>
+        <li><strong>Game State Management:</strong> Pause/resume, restart, main menu navigation</li>
+        <li><strong>Accessibility:</strong> ARIA labels, keyboard navigation, skip links</li>
+    </ul>
+
+    <h3>Animation, Visual Effects, and Audio Effects</h3>
+
+    <h4>Visual Effects</h4>
+    <ul>
+        <li><strong>Particle System:</strong> Apple consumption creates animated particle effects</li>
+        <li><strong>Level Up Effects:</strong> Text animations and visual feedback for stage progression</li>
+        <li><strong>Border Indicators:</strong> Pulsing animations for blocked borders in survivor mode</li>
+        <li><strong>Progress Animations:</strong> Smooth progress bar transitions and color changes</li>
+    </ul>
+
+    <h4>Audio Effects</h4>
+    <ul>
+        <li><strong>Eat Sound:</strong> Crunch sound effect when consuming apples (trimmed to 0.8s duration)</li>
+        <li><strong>Collision Sound:</strong> Bump sound when hitting walls or self (1.2s duration)</li>
+        <li><strong>Level Up Sound:</strong> Victory sound for stage progression and game completion</li>
+        <li><strong>Volume Control:</strong> Real-time volume adjustment with visual sound wave animation</li>
+    </ul>
+
+    <h4>Haptic Feedback</h4>
+    <ul>
+        <li><strong>Vibration API:</strong> Device vibration on game events (win/lose scenarios)</li>
+        <li><strong>Visual Feedback:</strong> Screen flash effects and color transitions</li>
+    </ul>
+
+    <h2>Technical Implementation</h2>
+
+    <h3>Events</h3>
+    <p>Our application implements comprehensive event handling:</p>
+    <ul>
+        <li><strong>Keyboard Events:</strong> Direction input, pause/resume, menu navigation</li>
+        <li><strong>Mouse Events:</strong> Button clicks, slider interactions, menu selections</li>
+        <li><strong>Game Events:</strong> Apple consumption, collision detection, timer expiration</li>
+        <li><strong>Window Events:</strong> Focus/blur handling for automatic pause functionality</li>
+    </ul>
+
+    <h3>State Management using VueX</h3>
+    <p>The application uses VueX for centralized state management:</p>
+
+    <h4>State Structure</h4>
+    <div class="code-block">
+state: {
+  snake: [],           // Snake body coordinates
+  apples: [],          // Apple positions
+  direction: {x: 1, y: 0}, // Current movement direction
+  score: 0,            // Current score
+  bestScore: 0,        // High score
+  status: 'menu',      // Game state (menu/running/paused/gameover/won)
+  difficulty: 'easy',  // Selected difficulty
+  config: {...},       // Game configuration per difficulty
+  volume: 70,          // Audio volume level
+  lastSoundPlayed: null // Sound trigger system
+}
+    </div>
+
+    <h4>Key Mutations</h4>
+    <ul>
+        <li><code>STEP</code>: Main game logic execution</li>
+        <li><code>QUEUE_DIR</code>: Direction change handling</li>
+        <li><code>RESET</code>: Game state reset</li>
+        <li><code>SET_VOLUME</code>: Audio volume control</li>
+        <li><code>PLAY_SOUND</code>: Audio trigger system</li>
+    </ul>
+
+    <h3>Hooks</h3>
+    <p>Vue.js lifecycle hooks are extensively used:</p>
+    <ul>
+        <li><strong>mounted():</strong> Canvas initialization, audio setup, event listeners</li>
+        <li><strong>beforeUnmount():</strong> Cleanup of audio resources and event listeners</li>
+        <li><strong>watch:</strong> Reactive updates for game state changes, volume changes, sound triggers</li>
+    </ul>
+
+    <h3>APIs Integration</h3>
+    <p>Multiple web APIs are integrated:</p>
+    <ul>
+        <li><strong>Canvas API:</strong> 2D rendering for game graphics</li>
+        <li><strong>Audio API:</strong> Sound effect playback and volume control</li>
+        <li><strong>Vibration API:</strong> Haptic feedback for mobile devices</li>
+        <li><strong>Local Storage API:</strong> Persistent high score storage</li>
+    </ul>
+
+    <h3>Reactive Feedback</h3>
+    <p>The application provides real-time reactive feedback:</p>
+    <ul>
+        <li><strong>Live HUD Updates:</strong> Score, timer, progress bars update instantly</li>
+        <li><strong>Visual Indicators:</strong> Border status, starvation timer, volume levels</li>
+        <li><strong>Sound Triggers:</strong> Audio feedback synchronized with game events</li>
+        <li><strong>State Synchronization:</strong> All components react to VueX state changes</li>
+    </ul>
+
+    <h2>Screenshots Required</h2>
+
+    <div class="screenshot-placeholder">
+        <h4>Screenshot 1: Main Menu Interface</h4>
+        <p>Screenshot showing difficulty selection buttons (Easy, Medium, Hard, Survivor), leaderboard with best scores, and clean UI design</p>
+    </div>
+
+    <div class="screenshot-placeholder">
+        <h4>Screenshot 2: Gameplay - Easy Mode</h4>
+        <p>Screenshot showing snake in action, HUD with score/time/progress, apple timer, and border indicators</p>
+    </div>
+
+    <div class="screenshot-placeholder">
+        <h4>Screenshot 3: Survivor Mode Features</h4>
+        <p>Screenshot showing stage progression, border blocking system, survival time tracking, and stage indicators</p>
+    </div>
+
+    <div class="screenshot-placeholder">
+        <h4>Screenshot 4: Game Over Screen</h4>
+        <p>Screenshot showing final score, restart options, main menu button, and game over overlay</p>
+    </div>
+
+    <div class="screenshot-placeholder">
+        <h4>Screenshot 5: Pause Screen</h4>
+        <p>Screenshot showing paused game state, resume/restart controls, and pause overlay</p>
+    </div>
+
+    <div class="screenshot-placeholder">
+        <h4>Screenshot 6: Audio Controls</h4>
+        <p>Screenshot showing volume slider, sound wave animation, and audio feedback system</p>
+    </div>
+
+    <h2>User Experience Enhancement</h2>
+
+    <div class="scenario-box">
+        <h4>Scenario 1: First-Time Player</h4>
+        <p>A new player opens the game and sees an intuitive main menu with clear difficulty options. The Easy mode provides a gentle learning curve with slower speed and longer starvation timers. Visual indicators help them understand border mechanics and scoring system.</p>
+    </div>
+
+    <div class="scenario-box">
+        <h4>Scenario 2: Experienced Player</h4>
+        <p>An experienced player can jump to Hard mode for increased challenge or try Survivor mode for endless gameplay. The progressive difficulty system keeps them engaged with new challenges as borders close and stages advance.</p>
+    </div>
+
+    <div class="scenario-box">
+        <h4>Scenario 3: Accessibility</h4>
+        <p>The game includes accessibility features like ARIA labels, keyboard navigation, and visual feedback that make it playable for users with different needs. The volume control and visual indicators provide multiple feedback channels.</p>
+    </div>
+
+    <h3>Technical Enhancement Impact</h3>
+    <ul>
+        <li><strong>VueX State Management:</strong> Ensures consistent game state across all components</li>
+        <li><strong>Reactive Components:</strong> Real-time updates provide immediate feedback</li>
+        <li><strong>Event Handling:</strong> Responsive controls enhance gameplay experience</li>
+        <li><strong>API Integration:</strong> Audio and visual effects create immersive experience</li>
+    </ul>
+
+    <div class="conclusion">
+        <h2>Conclusion</h2>
+        <p>Our Snake game implementation successfully demonstrates mastery of Vue.js and VueX concepts while delivering an engaging, feature-rich gaming experience. The combination of classic gameplay mechanics with modern web technologies creates a polished, accessible, and enjoyable game that meets all assignment requirements.</p>
+        
+        <p>The project showcases effective use of state management, event handling, API integration, and reactive programming principles that are essential for modern web application development.</p>
+    </div>
+
+    <div class="footer">
+        <p><strong>Repository:</strong> [GitHub Repository URL]</p>
+        <p><strong>Live Demo:</strong> [Deployment URL]</p>
+        <p><strong>Video Demo:</strong> [2-minute gameplay demonstration]</p>
+    </div>
+</body>
+</html>

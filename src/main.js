@@ -10,9 +10,18 @@ const store = createStore({
 
     // ===== Difficulty Configs (includes Survivor) =====
     config: {
-      easy:   { grid: 20, tick: 140, startLen: 3, applesAtOnce: [1, 1], timerSec: 180, applePts: 10 },
-      medium: { grid: 24, tick: 110, startLen: 4, applesAtOnce: [1, 2], timerSec: 150, applePts: 20 },
-      hard:   { grid: 28, tick: 85,  startLen: 5, applesAtOnce: [2, 2], timerSec: 120, applePts: 30, starvation: 30 },
+      easy:   { 
+        grid: 20, tick: 140, startLen: 3, applesAtOnce: [1, 1], timerSec: 180, applePts: 10, starvation: 60,
+        borders: { top: false, bottom: false, left: false, right: false } // All borders open (wrap-around)
+      },
+      medium: { 
+        grid: 24, tick: 110, startLen: 4, applesAtOnce: [1, 2], timerSec: 150, applePts: 20, starvation: 45,
+        borders: { top: true, bottom: true, left: false, right: false } // Only vertical borders blocked
+      },
+      hard:   { 
+        grid: 28, tick: 85,  startLen: 5, applesAtOnce: [2, 2], timerSec: 120, applePts: 30, starvation: 30,
+        borders: { top: true, bottom: true, left: true, right: true } // All borders blocked
+      },
 
       // NEW: Survivor (no timer; speeds up every 100 score)
       survivor: {
@@ -23,7 +32,9 @@ const store = createStore({
         timerSec: null,       // no countdown/timer in survivor
         applePts: 10,
         accelPer100: 10,      // reduce tick by 10ms per 100 score
-        minTick: 50           // cap at 50ms minimum
+        minTick: 50,          // cap at 50ms minimum
+        borders: { top: false, bottom: false, left: false, right: false }, // Start with all open
+        borderBlockScore: 200  // Block a border every 200 points
       }
     },
 
@@ -40,7 +51,14 @@ const store = createStore({
     ticksSinceApple: 0,
     bestScore: 0,
     emojiMap: {},
-    countdown: 0
+    countdown: 0,
+    survivalTime: 0, // For survivor mode elapsed time
+    bestSurvivalTime: 0, // Best survival time record
+    currentStage: 1, // Current stage in survivor mode
+    survivalRecords: [], // Array of survival time records
+    maxRecords: 10, // Maximum number of records to keep
+    volume: 70, // Volume level (0-100)
+    lastSoundPlayed: null // Last sound that was triggered
   },
 
   // ===== Getters =====
@@ -80,6 +98,7 @@ const store = createStore({
 
     RESET(state) {
       const config = state.config[state.difficulty]
+      console.log('Resetting game for difficulty:', state.difficulty, 'Config:', config)
       state.snake = []
       state.apples = []
       state.dir = { x: 1, y: 0 }
@@ -88,6 +107,8 @@ const store = createStore({
       state.streak = 0
       state.timeLeft = config.timerSec ?? 0  // Survivor: null → 0 (no timer)
       state.ticksSinceApple = 0
+      state.survivalTime = 0 // Reset survival time
+      state.currentStage = 1 // Reset stage
 
       // Initialize snake in center
       const center = Math.floor(state.gridSize / 2)
@@ -145,22 +166,117 @@ const store = createStore({
       head.x += state.dir.x
       head.y += state.dir.y
 
-      // Walls
-      if (head.x < 0 || head.x >= state.gridSize || head.y < 0 || head.y >= state.gridSize) {
-        state.status = 'gameover'
-        return
+      // Handle border mechanics and wrap-around
+      const borders = config.borders || { top: true, bottom: true, left: true, right: true }
+      
+      // Check wall collision
+      if (head.x < 0) {
+        if (borders.left) {
+          state.status = 'gameover'
+          // Save survival record AFTER status change
+          if (state.difficulty === 'survivor' && state.survivalTime > 0) {
+            const record = {
+              time: state.survivalTime,
+              stage: state.currentStage,
+              date: new Date().toLocaleDateString(),
+              timestamp: Date.now()
+            }
+            state.survivalRecords.push(record)
+            state.survivalRecords.sort((a, b) => b.time - a.time)
+            state.survivalRecords = state.survivalRecords.slice(0, state.maxRecords)
+          }
+          this.commit('PLAY_SOUND', 'bump')
+          return
+        } else {
+          // Wrap around to right side
+          head.x = state.gridSize - 1
+        }
+      } else if (head.x >= state.gridSize) {
+        if (borders.right) {
+          state.status = 'gameover'
+          // Save survival record AFTER status change
+          if (state.difficulty === 'survivor' && state.survivalTime > 0) {
+            const record = {
+              time: state.survivalTime,
+              stage: state.currentStage,
+              date: new Date().toLocaleDateString(),
+              timestamp: Date.now()
+            }
+            state.survivalRecords.push(record)
+            state.survivalRecords.sort((a, b) => b.time - a.time)
+            state.survivalRecords = state.survivalRecords.slice(0, state.maxRecords)
+          }
+          this.commit('PLAY_SOUND', 'bump')
+          return
+        } else {
+          // Wrap around to left side
+          head.x = 0
+        }
       }
 
-      // Self
+      // Check vertical borders (top/bottom)
+      if (head.y < 0) {
+        if (borders.top) {
+          state.status = 'gameover'
+          // Save survival record AFTER status change
+          if (state.difficulty === 'survivor' && state.survivalTime > 0) {
+            const record = {
+              time: state.survivalTime,
+              stage: state.currentStage,
+              date: new Date().toLocaleDateString(),
+              timestamp: Date.now()
+            }
+            state.survivalRecords.push(record)
+            state.survivalRecords.sort((a, b) => b.time - a.time)
+            state.survivalRecords = state.survivalRecords.slice(0, state.maxRecords)
+          }
+          this.commit('PLAY_SOUND', 'bump')
+          return
+        } else {
+          // Wrap around to bottom
+          head.y = state.gridSize - 1
+        }
+      } else if (head.y >= state.gridSize) {
+        if (borders.bottom) {
+          state.status = 'gameover'
+          // Save survival record AFTER status change
+          if (state.difficulty === 'survivor' && state.survivalTime > 0) {
+            const record = {
+              time: state.survivalTime,
+              stage: state.currentStage,
+              date: new Date().toLocaleDateString(),
+              timestamp: Date.now()
+            }
+            state.survivalRecords.push(record)
+            state.survivalRecords.sort((a, b) => b.time - a.time)
+            state.survivalRecords = state.survivalRecords.slice(0, state.maxRecords)
+          }
+          this.commit('PLAY_SOUND', 'bump')
+          return
+        } else {
+          // Wrap around to top
+          head.y = 0
+        }
+      }
+
+      // Self collision
       if (state.snake.some(seg => seg.x === head.x && seg.y === head.y)) {
+        // Save survival record before game over
+        if (state.difficulty === 'survivor' && state.survivalTime > 0) {
+          this.commit('ADD_SURVIVAL_RECORD', state.survivalTime)
+        }
         state.status = 'gameover'
+        this.commit('PLAY_SOUND', 'bump')
         return
       }
 
-      // Apple
+      // Apple collision
       const idx = state.apples.findIndex(a => a.x === head.x && a.y === head.y)
       if (idx !== -1) {
         state.apples.splice(idx, 1)
+
+        // Play eat sound
+        this.commit('PLAY_SOUND', 'eat')
 
         // Score
         let points = config.applePts
@@ -173,6 +289,28 @@ const store = createStore({
 
         // Grow: add new head, keep tail
         state.snake.unshift(head)
+
+        // Survivor mode: Check for stage progression and border blocking
+        if (state.difficulty === 'survivor' && config.borderBlockScore) {
+          // Calculate stage based on score (every 200 points = new stage)
+          const newStage = Math.floor(state.score / config.borderBlockScore) + 1
+          
+          if (newStage > state.currentStage) {
+            this.commit('INCREMENT_STAGE')
+            this.commit('PLAY_SOUND', 'levelup')
+          }
+          
+          // Block borders progressively (every 200 points)
+          const borderBlocks = Math.floor(state.score / config.borderBlockScore)
+          const currentBlocks = Object.values(borders).filter(blocked => blocked).length
+          
+          if (borderBlocks > currentBlocks && borderBlocks <= 4) {
+            // Block the next border
+            const borderOrder = ['top', 'right', 'bottom', 'left']
+            const borderToBlock = borderOrder[borderBlocks - 1]
+            this.commit('BLOCK_SURVIVOR_BORDER', borderToBlock)
+          }
+        }
       } else {
         // Move: add head, remove tail
         state.snake.unshift(head)
@@ -180,19 +318,23 @@ const store = createStore({
         state.ticksSinceApple++
       }
 
-      // Starvation (hard mode)
-      if (state.difficulty === 'hard' && state.ticksSinceApple >= (config.starvation || 0)) {
+      // Starvation (all modes except Survivor)
+      if (state.difficulty !== 'survivor' && state.ticksSinceApple >= (config.starvation || 0)) {
+        // No need to save record here as this doesn't happen in survivor mode
         state.status = 'gameover'
         return
       }
 
-      // Win condition (30% fill)
-      const target = Math.floor(state.gridSize * state.gridSize * 0.3)
-      if (state.snake.length >= target) {
-        const bonuses = { easy: 100, medium: 150, hard: 200 }
-        state.score += bonuses[state.difficulty] || 0
-        state.status = 'won'
-        return
+      // Win condition (30% fill) - only for non-survivor modes
+      if (state.difficulty !== 'survivor') {
+        const target = Math.floor(state.gridSize * state.gridSize * 0.3)
+        if (state.snake.length >= target) {
+          const bonuses = { easy: 100, medium: 150, hard: 200 }
+          state.score += bonuses[state.difficulty] || 0
+          state.status = 'won'
+          this.commit('PLAY_SOUND', 'levelup')
+          return
+        }
       }
 
       // Keep apples coming
@@ -225,18 +367,68 @@ const store = createStore({
       if (state.countdown <= 0) {
         state.status = 'running'
       }
+    },
+
+    INCREMENT_SURVIVAL_TIME(state) {
+      if (state.difficulty === 'survivor' && state.status === 'running') {
+        state.survivalTime++
+        console.log('Survival time:', state.survivalTime)
+        if (state.survivalTime > state.bestSurvivalTime) {
+          state.bestSurvivalTime = state.survivalTime
+        }
+      }
+    },
+
+    BLOCK_SURVIVOR_BORDER(state, borderName) {
+      if (state.difficulty === 'survivor' && state.config.survivor.borders) {
+        state.config.survivor.borders[borderName] = true
+      }
+    },
+
+    INCREMENT_STAGE(state) {
+      if (state.difficulty === 'survivor') {
+        state.currentStage++
+        console.log('Advanced to stage:', state.currentStage)
+      }
+    },
+
+    ADD_SURVIVAL_RECORD(state, survivalTime) {
+      const record = {
+        time: survivalTime,
+        stage: state.currentStage,
+        date: new Date().toLocaleDateString(),
+        timestamp: Date.now()
+      }
+      
+      state.survivalRecords.push(record)
+      
+      // Sort by time (descending) and keep only top records
+      state.survivalRecords.sort((a, b) => b.time - a.time)
+      state.survivalRecords = state.survivalRecords.slice(0, state.maxRecords)
+    },
+
+    SET_VOLUME(state, volume) {
+      state.volume = Math.max(0, Math.min(100, volume))
+    },
+
+    PLAY_SOUND(state, soundName) {
+      // This will be handled by the GameBoard component
+      // We'll emit an event that the component can listen to
+      state.lastSoundPlayed = { sound: soundName, timestamp: Date.now() }
     }
   },
 
   // ===== Actions =====
   actions: {
     start({ commit, state }, difficulty) {
+      console.log('Starting game with difficulty:', difficulty)
       commit('SET_DIFF', difficulty)
       commit('RESET')
       commit('SPAWN_APPLES')
 
       // Survivor: skip countdown → start immediately
-      if (state.difficulty === 'survivor') {
+      if (difficulty === 'survivor') {
+        console.log('Starting survivor mode immediately')
         commit('SET_COUNTDOWN', 0)
         commit('SET_STATUS', 'running')
         return
@@ -254,8 +446,10 @@ const store = createStore({
     },
 
     second({ commit, state }) {
+      console.log('Second tick - Status:', state.status, 'Difficulty:', state.difficulty)
       if (state.status === 'running') {
         commit('TICK_TIME')
+        commit('INCREMENT_SURVIVAL_TIME')
       } else if (state.status === 'countdown') {
         commit('DECREMENT_COUNTDOWN')
       }
@@ -282,6 +476,13 @@ const store = createStore({
         tumbler_glass: '🥃', cup_with_straw: '🥤', beverage_box: '🧃', mate: '🧉', ice: '🧊'
       }
       commit('SET_EMOJI_MAP', emojis)
+    },
+
+    gameOver({ commit, state }) {
+      // If it's survivor mode, save the record
+      if (state.difficulty === 'survivor' && state.survivalTime > 0) {
+        commit('ADD_SURVIVAL_RECORD', state.survivalTime)
+      }
     }
   }
 })

@@ -1,51 +1,100 @@
 <template>
   <div class="app">
+    <!-- Skip to content link for accessibility -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
     <!-- Menu Screen -->
-    <div v-if="status === 'menu'" class="menu">
+    <div 
+      v-if="status === 'menu'" 
+      class="menu"
+      id="main-content"
+      role="main"
+      aria-label="Main menu"
+    >
       <h1>Snake Game</h1>
-      <div class="difficulty-select">
-        <h2>Choose Difficulty</h2>
-        <div class="difficulty-buttons">
-          <button 
-            v-for="(config, diff) in config" 
-            :key="diff"
-            @click="startGame(diff)"
-            class="difficulty-btn"
-            :class="diff"
-          >
-            <div class="diff-name">{{ diff.charAt(0).toUpperCase() + diff.slice(1) }}</div>
-            <div class="diff-details">
-              Grid: {{ config.grid }}×{{ config.grid }} | 
-              Speed: {{ config.tick }}ms | 
-              Timer: {{ config.timerSec }}s
+      <div class="menu-content">
+        <div class="difficulty-select">
+          <h2>Choose Difficulty</h2>
+          <div class="difficulty-buttons">
+            <button 
+              v-for="(config, diff) in config" 
+              :key="diff"
+              @click="startGame(diff)"
+              class="difficulty-btn"
+              :class="diff"
+              :aria-label="`Start ${diff} difficulty game`"
+              :aria-describedby="`${diff}-description`"
+            >
+              <div class="diff-name">{{ diff.charAt(0).toUpperCase() + diff.slice(1) }}</div>
+              <div class="diff-details" :id="`${diff}-description`">
+                Grid: {{ config.grid }}×{{ config.grid }} | 
+                Speed: {{ config.tick }}ms | 
+                {{ diff === 'survivor' ? 'Endless' : `Timer: ${config.timerSec}s` }}
+              </div>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Survival Mode Leaderboard -->
+        <div v-if="survivalRecords.length > 0" class="leaderboard">
+          <h3>🏆 Survival Records</h3>
+          <div class="records-list">
+            <div 
+              v-for="(record, index) in survivalRecords" 
+              :key="record.timestamp"
+              class="record-item"
+              :class="{ 'best': index === 0 }"
+            >
+              <div class="record-rank">#{{ index + 1 }}</div>
+              <div class="record-details">
+                <div class="record-time">{{ formatTime(record.time) }}</div>
+                <div class="record-stage">Stage {{ record.stage }}</div>
+                <div class="record-date">{{ record.date }}</div>
+              </div>
             </div>
-          </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Game Screen -->
-    <div v-else class="game" tabindex="0" ref="gameContainer" @keydown="handleKeydown">
-      <!-- Controls -->
-      <div class="controls">
-        <button 
-          v-if="status === 'running'" 
-          @click="pauseGame" 
-          class="control-btn pause"
-        >
-          Pause
-        </button>
-        <button 
-          v-if="status === 'paused'" 
-          @click="resumeGame" 
-          class="control-btn resume"
-        >
-          Resume
-        </button>
-        <button @click="restartGame" class="control-btn restart">
-          Restart
-        </button>
-      </div>
+           <!-- Game Screen -->
+           <div 
+             v-else 
+             class="game" 
+             :class="{}"
+             tabindex="0" 
+             ref="gameContainer" 
+             @keydown="handleKeydown"
+             role="application"
+             :aria-label="`Snake game - ${status} state`"
+             aria-live="polite"
+           >
+             <!-- Controls -->
+             <div class="controls">
+               <button 
+                 v-if="status === 'running'" 
+                 @click="pauseGame" 
+                 class="control-btn pause"
+                 aria-label="Pause game"
+               >
+                 Pause
+               </button>
+               <button 
+                 v-if="status === 'paused'" 
+                 @click="resumeGame" 
+                 class="control-btn resume"
+                 aria-label="Resume game"
+               >
+                 Resume
+               </button>
+               <button 
+                 @click="restartGame" 
+                 class="control-btn restart"
+                 aria-label="Restart game"
+               >
+                 Restart
+               </button>
+             </div>
 
       <!-- HUD -->
       <HUD />
@@ -58,22 +107,75 @@
         <h2>🎉 Level Complete!</h2>
         <p>Score: {{ score }}</p>
         <p>Length: {{ length }}/{{ Math.floor(gridSize * gridSize * 0.3) }}</p>
-        <button @click="backToMenu" class="control-btn">Back to Menu</button>
+        <div class="overlay-buttons">
+          <button 
+            @click="restartGame" 
+            class="control-btn restart"
+            aria-label="Play again"
+          >
+            Play Again
+          </button>
+          <button 
+            @click="backToMenu" 
+            class="control-btn menu"
+            aria-label="Return to main menu"
+          >
+            Main Menu
+          </button>
+        </div>
       </div>
 
       <div v-if="status === 'gameover'" class="overlay gameover">
         <h2>💀 Game Over!</h2>
         <p>Score: {{ score }}</p>
-        <p>Length: {{ length }}</p>
-        <button @click="backToMenu" class="control-btn">Back to Menu</button>
+        <p v-if="difficulty === 'survivor'">Survival Time: {{ formatSurvivalTime }}</p>
+        <p v-else>Length: {{ length }}</p>
+        <div class="overlay-buttons">
+          <button 
+            @click="restartGame" 
+            class="control-btn restart"
+            aria-label="Play again"
+          >
+            Play Again
+          </button>
+          <button 
+            @click="backToMenu" 
+            class="control-btn menu"
+            aria-label="Return to main menu"
+          >
+            Main Menu
+          </button>
+        </div>
       </div>
 
       <div v-if="status === 'paused'" class="overlay paused">
         <h2>⏸️ Paused</h2>
         <p>Press Resume to continue</p>
+        <div class="overlay-buttons">
+          <button 
+            @click="resumeGame" 
+            class="control-btn resume"
+            aria-label="Resume game"
+          >
+            Resume
+          </button>
+          <button 
+            @click="backToMenu" 
+            class="control-btn menu"
+            aria-label="Return to main menu"
+          >
+            Main Menu
+          </button>
+        </div>
       </div>
 
-      <div v-if="status === 'countdown'" class="overlay countdown">
+      <div 
+        v-if="status === 'countdown' && isStartingFromMenu" 
+        class="overlay countdown"
+        role="status"
+        aria-live="polite"
+        aria-label="Game starting countdown"
+      >
         <h2 class="countdown-number">{{ countdown }}</h2>
         <p>Get Ready!</p>
       </div>
@@ -95,17 +197,32 @@ export default {
       tickInterval: null,
       secondInterval: null,
       lastSpeedMs: null, // track current tick speed (for Survivor)
+      isStartingFromMenu: false // Flag to control countdown display
     }
   },
 
   computed: {
-    ...mapState(['status', 'config', 'score', 'gridSize', 'countdown']),
+    ...mapState(['status', 'config', 'score', 'gridSize', 'countdown', 'survivalRecords', 'survivalTime', 'difficulty']),
     ...mapGetters(['length']),
 
     // Ensure Survivor shows in menu (if you need it elsewhere in template)
     difficulties() {
       const order = ['easy', 'medium', 'hard', 'survivor']
       return order.filter(d => this.config && this.config[d])
+    },
+
+    formatSurvivalTime() {
+      const mins = Math.floor(this.survivalTime / 60)
+      const secs = this.survivalTime % 60
+      return `${mins}:${secs.toString().padStart(2, '0')}`
+    },
+
+    formatTime() {
+      return (seconds) => {
+        const mins = Math.floor(seconds / 60)
+        const secs = seconds % 60
+        return `${mins}:${secs.toString().padStart(2, '0')}`
+      }
     }
   },
 
@@ -134,6 +251,7 @@ export default {
     ...mapActions(['start', 'tick', 'second', 'fetchEmojis']),
 
     startGame(difficulty) {
+      this.isStartingFromMenu = true
       this.start(difficulty)
 
       // Survivor: skip countdown → run immediately
@@ -166,11 +284,15 @@ export default {
     },
 
     restartGame() {
+      this.isStartingFromMenu = false
       this.start(this.$store.state.difficulty)
-      if (this.$store.state.difficulty === 'survivor') {
-        if (this.$store._mutations?.SET_COUNTDOWN) this.$store.commit('SET_COUNTDOWN', 0)
-        this.$store.commit('SET_STATUS', 'running')
+      
+      // Skip countdown for restart - go directly to running
+      if (this.$store._mutations?.SET_COUNTDOWN) {
+        this.$store.commit('SET_COUNTDOWN', 0)
       }
+      this.$store.commit('SET_STATUS', 'running')
+      
       this.startIntervals()
     },
 
@@ -190,12 +312,10 @@ export default {
         this.tick()
       }, speedMs)
 
-      // only run 1-second timer if not survivor
-      if (this.$store.state.difficulty !== 'survivor') {
-        this.secondInterval = setInterval(() => {
-          this.second()
-        }, 1000)
-      }
+      // 1-second timer for all modes (survivor needs it for survival time tracking)
+      this.secondInterval = setInterval(() => {
+        this.second()
+      }, 1000)
     },
 
     stopIntervals() {
@@ -226,7 +346,8 @@ export default {
 
     handleWindowBlur() {
       if (this.status === 'running') this.pauseGame()
-    }
+    },
+
   },
 
   mounted() {
@@ -261,6 +382,79 @@ export default {
   padding: 2rem;
   border-radius: 20px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  max-width: 800px;
+  width: 100%;
+}
+
+.menu-content {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.difficulty-select {
+  flex: 1;
+}
+
+.leaderboard {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.leaderboard h3 {
+  margin-bottom: 1rem;
+  color: #333;
+  text-align: center;
+}
+
+.records-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.record-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  border-left: 4px solid #ddd;
+}
+
+.record-item.best {
+  background: rgba(255, 215, 0, 0.2);
+  border-left-color: #FFD700;
+}
+
+.record-rank {
+  font-weight: bold;
+  color: #666;
+  margin-right: 1rem;
+  min-width: 30px;
+}
+
+.record-details {
+  flex: 1;
+}
+
+.record-time {
+  font-weight: bold;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.record-stage {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.record-date {
+  color: #999;
+  font-size: 0.8rem;
 }
 
 .menu h1 {
@@ -393,6 +587,22 @@ export default {
   margin-top: 1rem;
   padding: 0.75rem 1.5rem;
   font-size: 1.1rem;
+}
+
+.overlay-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.control-btn.menu {
+  background: #6c757d;
+}
+
+.control-btn.menu:hover {
+  background: #5a6268;
+  transform: translateY(-1px);
 }
 
 </style>

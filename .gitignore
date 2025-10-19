@@ -79,3 +79,10 @@ jspm_packages/
 
 # DynamoDB Local files
 .dynamodb/
+
+# PDF and Report files
+*.pdf
+*_PDF.pdf
+*_Print.html
+convert_to_pdf.js
+PDF_Conversion_Instructions.md
