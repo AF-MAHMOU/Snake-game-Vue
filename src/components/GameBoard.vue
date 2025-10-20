@@ -25,12 +25,13 @@ export default {
     }
   },
   computed: {
-    ...mapState(['snake', 'apples', 'gridSize', 'status', 'emojiMap', 'difficulty', 'volume', 'lastSoundPlayed']),
+    ...mapState(['snake', 'apples', 'gridSize', 'status', 'emojiMap', 'difficulty', 'volume', 'lastSoundPlayed', 'explosionCells', 'seeds', 'stageAbilities', 'borderBounceActive', 'borderBounceDirection', 'shieldActive']),
     ...mapGetters(['currentConfig']),
     
     
     canvasSize() {
-      return 560
+      // Use a more reasonable size that fits well on screen
+      return 480
     },
     
     cellSize() {
@@ -54,6 +55,30 @@ export default {
         this.render()
       },
       deep: true
+    },
+    explosionCells: {
+      handler() {
+        this.render()
+        // Clean up old explosion cells
+        this.cleanupExplosionCells()
+      },
+      deep: true
+    },
+    seeds: {
+      handler() {
+        this.render()
+      },
+      deep: true
+    },
+    borderBounceActive: {
+      handler() {
+        this.render()
+      }
+    },
+    shieldActive: {
+      handler() {
+        this.render()
+      }
     },
     status(newStatus) {
       if (newStatus === 'gameover') {
@@ -278,6 +303,21 @@ export default {
         }
       }, 2000)
     },
+
+    cleanupExplosionCells() {
+      // Remove explosion cells older than 1 second
+      const now = Date.now()
+      const validExplosions = this.explosionCells.filter(explosion => 
+        (now - explosion.time) < 1000
+      )
+      
+      if (validExplosions.length !== this.explosionCells.length) {
+        this.$store.commit('CLEAR_EXPLOSION_CELLS')
+        validExplosions.forEach(explosion => {
+          this.$store.commit('ADD_EXPLOSION_CELL', explosion)
+        })
+      }
+    },
     
     
     render() {
@@ -347,6 +387,45 @@ export default {
         ctx.stroke()
       }
       
+      // Draw border bounce effect
+      if (this.borderBounceActive && this.borderBounceDirection) {
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.3)'
+        
+        switch (this.borderBounceDirection) {
+          case 'left':
+            ctx.fillRect(0, 0, 10, this.canvasSize)
+            break
+          case 'right':
+            ctx.fillRect(this.canvasSize - 10, 0, 10, this.canvasSize)
+            break
+          case 'top':
+            ctx.fillRect(0, 0, this.canvasSize, 10)
+            break
+          case 'bottom':
+            ctx.fillRect(0, this.canvasSize - 10, this.canvasSize, 10)
+            break
+        }
+        
+        // Add pulsing effect
+        const pulseIntensity = Math.sin(Date.now() / 100) * 0.2 + 0.3
+        ctx.fillStyle = `rgba(255, 0, 0, ${pulseIntensity})`
+        
+        switch (this.borderBounceDirection) {
+          case 'left':
+            ctx.fillRect(0, 0, 5, this.canvasSize)
+            break
+          case 'right':
+            ctx.fillRect(this.canvasSize - 5, 0, 5, this.canvasSize)
+            break
+          case 'top':
+            ctx.fillRect(0, 0, this.canvasSize, 5)
+            break
+          case 'bottom':
+            ctx.fillRect(0, this.canvasSize - 5, this.canvasSize, 5)
+            break
+        }
+      }
+      
       // Draw snake
       this.snake.forEach((segment, index) => {
         const x = segment.x * cellSize
@@ -356,6 +435,50 @@ export default {
           // Snake head
           ctx.fillStyle = '#4CAF50'
           ctx.fillRect(x + 2, y + 2, cellSize - 4, cellSize - 4)
+          
+          // Stage 1 ability: Explosion indicator on head
+          if (this.difficulty === 'survivor' && Object.values(this.stageAbilities).includes('explosion')) {
+            ctx.strokeStyle = '#FFD700'
+            ctx.lineWidth = 2
+            ctx.strokeRect(x + 1, y + 1, cellSize - 2, cellSize - 2)
+          }
+          
+          // Shield animation around snake head
+          if (this.shieldActive) {
+            const shieldRadius = cellSize / 2 + 4
+            const centerX = x + cellSize / 2
+            const centerY = y + cellSize / 2
+            
+            // Create pulsing shield effect
+            const pulseIntensity = Math.sin(Date.now() / 200) * 0.3 + 0.7
+            const shieldOpacity = pulseIntensity * 0.6
+            
+            // Outer shield ring
+            ctx.strokeStyle = `rgba(0, 150, 255, ${shieldOpacity})`
+            ctx.lineWidth = 3
+            ctx.beginPath()
+            ctx.arc(centerX, centerY, shieldRadius, 0, 2 * Math.PI)
+            ctx.stroke()
+            
+            // Inner shield ring
+            ctx.strokeStyle = `rgba(100, 200, 255, ${shieldOpacity * 0.8})`
+            ctx.lineWidth = 2
+            ctx.beginPath()
+            ctx.arc(centerX, centerY, shieldRadius - 2, 0, 2 * Math.PI)
+            ctx.stroke()
+            
+            // Shield particles
+            for (let i = 0; i < 6; i++) {
+              const angle = (i / 6) * Math.PI * 2 + Date.now() / 500
+              const particleX = centerX + Math.cos(angle) * (shieldRadius + 2)
+              const particleY = centerY + Math.sin(angle) * (shieldRadius + 2)
+              
+              ctx.fillStyle = `rgba(0, 150, 255, ${shieldOpacity * 0.8})`
+              ctx.beginPath()
+              ctx.arc(particleX, particleY, 2, 0, 2 * Math.PI)
+              ctx.fill()
+            }
+          }
           
           // Eyes
           ctx.fillStyle = '#000'
@@ -371,6 +494,38 @@ export default {
         }
       })
       
+      // Draw explosion effects
+      this.explosionCells.forEach((explosion, index) => {
+        const x = explosion.x * cellSize
+        const y = explosion.y * cellSize
+        const centerX = x + cellSize / 2
+        const centerY = y + cellSize / 2
+        
+        // Calculate explosion intensity based on time
+        const timeSinceExplosion = Date.now() - explosion.time
+        const maxDuration = 1000 // 1 second
+        const intensity = Math.max(0, 1 - (timeSinceExplosion / maxDuration))
+        
+        if (intensity > 0) {
+          // Draw explosion effect
+          ctx.fillStyle = `rgba(255, 165, 0, ${intensity * 0.8})`
+          ctx.beginPath()
+          ctx.arc(centerX, centerY, cellSize / 2 * intensity, 0, 2 * Math.PI)
+          ctx.fill()
+          
+          // Draw explosion particles
+          ctx.fillStyle = `rgba(255, 69, 0, ${intensity})`
+          for (let i = 0; i < 4; i++) {
+            const angle = (i / 4) * Math.PI * 2
+            const particleX = centerX + Math.cos(angle) * (cellSize / 3 * intensity)
+            const particleY = centerY + Math.sin(angle) * (cellSize / 3 * intensity)
+            ctx.beginPath()
+            ctx.arc(particleX, particleY, 2 * intensity, 0, 2 * Math.PI)
+            ctx.fill()
+          }
+        }
+      })
+
       // Draw apples
       this.apples.forEach((apple, index) => {
         const x = apple.x * cellSize
@@ -378,6 +533,12 @@ export default {
         const centerX = x + cellSize / 2
         const centerY = y + cellSize / 2
         const radius = cellSize / 2 - 2
+        
+        // Stage 5 ability: Magnet effect (apples glow)
+        if (this.difficulty === 'survivor' && Object.values(this.stageAbilities).includes('magnet')) {
+          ctx.shadowColor = '#FFD700'
+          ctx.shadowBlur = 10
+        }
         
         // Use consistent emoji based on apple index to avoid flickering
         const emojiKeys = Object.keys(this.emojiMap)
@@ -390,12 +551,36 @@ export default {
           ctx.textBaseline = 'middle'
           ctx.fillText(emoji, centerX, centerY)
         } else {
-          // Fallback to red circle
-          ctx.fillStyle = '#F44336'
-          ctx.beginPath()
-          ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI)
-          ctx.fill()
+          // Fallback to apple emoji
+          ctx.font = `${cellSize - 4}px Arial`
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.fillText('🍎', centerX, centerY)
         }
+        
+        // Reset shadow
+        ctx.shadowBlur = 0
+      })
+
+      // Draw seeds
+      this.seeds.forEach(seed => {
+        const x = seed.x * cellSize
+        const y = seed.y * cellSize
+        const centerX = x + cellSize / 2
+        const centerY = y + cellSize / 2
+        const radius = cellSize / 4 // Smaller than apples
+        
+        // Draw seed as small brown circle
+        ctx.fillStyle = '#8B4513' // Brown color
+        ctx.beginPath()
+        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI)
+        ctx.fill()
+        
+        // Add small highlight
+        ctx.fillStyle = '#D2691E' // Lighter brown
+        ctx.beginPath()
+        ctx.arc(centerX - radius/3, centerY - radius/3, radius/3, 0, 2 * Math.PI)
+        ctx.fill()
       })
     }
   }

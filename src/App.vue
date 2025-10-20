@@ -36,9 +36,9 @@
         </div>
         
         <!-- Survival Mode Leaderboard -->
-        <div v-if="survivalRecords.length > 0" class="leaderboard">
+        <div class="leaderboard">
           <h3>🏆 Survival Records</h3>
-          <div class="records-list">
+          <div v-if="survivalRecords.length > 0" class="records-list">
             <div 
               v-for="(record, index) in survivalRecords" 
               :key="record.timestamp"
@@ -48,9 +48,81 @@
               <div class="record-rank">#{{ index + 1 }}</div>
               <div class="record-details">
                 <div class="record-time">{{ formatTime(record.time) }}</div>
-                <div class="record-stage">Stage {{ record.stage }}</div>
+                <div class="record-stage">Stage {{ record.stage }} • {{ record.score }} pts</div>
                 <div class="record-date">{{ record.date }}</div>
               </div>
+            </div>
+          </div>
+          <div v-else class="no-records">
+            <p>No survival records yet!</p>
+            <p>Play Survivor mode to set your first record.</p>
+          </div>
+          <button v-if="survivalRecords.length > 0" @click="clearSurvivalRecords" class="clear-records-btn">Clear Records</button>
+        </div>
+        
+        <!-- Game Legend/Help Panel -->
+        <div class="game-legend">
+          <h3>🎮 How to Play</h3>
+          
+          <!-- Basic Controls -->
+          <div class="legend-section">
+            <h4>⌨️ Controls</h4>
+            <div class="legend-item">
+              <span class="legend-key">WASD</span> or <span class="legend-key">Arrow Keys</span> - Move snake
+            </div>
+            <div class="legend-item">
+              <span class="legend-key">Space</span> - Pause/Resume
+            </div>
+          </div>
+          
+          <!-- Difficulty Explanations -->
+          <div class="legend-section">
+            <h4>🎯 Difficulty Modes</h4>
+            <div class="legend-item">
+              <span class="legend-difficulty easy">Easy</span> - All borders open (wrap around)
+            </div>
+            <div class="legend-item">
+              <span class="legend-difficulty medium">Medium</span> - Vertical borders blocked
+            </div>
+            <div class="legend-item">
+              <span class="legend-difficulty hard">Hard</span> - All borders blocked
+            </div>
+            <div class="legend-item">
+              <span class="legend-difficulty survivor">Survivor</span> - Endless mode with special abilities
+            </div>
+          </div>
+          
+          <!-- Survivor Mode Abilities -->
+          <div class="legend-section">
+            <h4>⚡ Survivor Abilities</h4>
+            <div class="legend-item">
+              <span class="legend-ability">💥 Explosion</span> - Eating apples spawns 6 seeds (Stage 1)
+            </div>
+            <div class="legend-item">
+              <span class="legend-ability">💰 Double Points</span> - Apples worth 2x points (Stage 2)
+            </div>
+            <div class="legend-item">
+              <span class="legend-ability">🧲 Magnet</span> - Apples attracted to snake (Stage 3+)
+            </div>
+            <div class="legend-item">
+              <span class="legend-ability">🌱 Seeds</span> - Worth 1/6 apple points, affected by magnet
+            </div>
+          </div>
+          
+          <!-- Game Mechanics -->
+          <div class="legend-section">
+            <h4>🍎 Game Mechanics</h4>
+            <div class="legend-item">
+              <span class="legend-mechanic">Apple Timer</span> - Eat apples before timer runs out
+            </div>
+            <div class="legend-item">
+              <span class="legend-mechanic">Dynamic Apples</span> - More apples spawn as you eat more apples
+            </div>
+            <div class="legend-item">
+              <span class="legend-mechanic">Reverse Prevention</span> - Can't go backwards into body
+            </div>
+            <div class="legend-item">
+              <span class="legend-mechanic">Border Progression</span> - Survivor mode blocks borders over time
             </div>
           </div>
         </div>
@@ -108,6 +180,15 @@
         <p>Score: {{ score }}</p>
         <p>Length: {{ length }}/{{ Math.floor(gridSize * gridSize * 0.3) }}</p>
         <div class="overlay-buttons">
+          <!-- Next Level button for Easy and Medium modes -->
+          <button 
+            v-if="difficulty === 'easy' || difficulty === 'medium'"
+            @click="nextLevel" 
+            class="control-btn next-level"
+            aria-label="Go to next level"
+          >
+            Next Level
+          </button>
           <button 
             @click="restartGame" 
             class="control-btn restart"
@@ -250,6 +331,10 @@ export default {
   methods: {
     ...mapActions(['start', 'tick', 'second', 'fetchEmojis']),
 
+    clearSurvivalRecords() {
+      this.$store.commit('CLEAR_SURVIVAL_RECORDS')
+    },
+
     startGame(difficulty) {
       this.isStartingFromMenu = true
       this.start(difficulty)
@@ -294,6 +379,26 @@ export default {
       this.$store.commit('SET_STATUS', 'running')
       
       this.startIntervals()
+    },
+
+    nextLevel() {
+      // Determine next difficulty level
+      const difficultyOrder = ['easy', 'medium', 'hard']
+      const currentIndex = difficultyOrder.indexOf(this.$store.state.difficulty)
+      const nextDifficulty = difficultyOrder[currentIndex + 1]
+      
+      if (nextDifficulty) {
+        this.isStartingFromMenu = false
+        this.start(nextDifficulty)
+        
+        // Skip countdown for next level - go directly to running
+        if (this.$store._mutations?.SET_COUNTDOWN) {
+          this.$store.commit('SET_COUNTDOWN', 0)
+        }
+        this.$store.commit('SET_STATUS', 'running')
+        
+        this.startIntervals()
+      }
     },
 
     backToMenu() {
@@ -404,6 +509,16 @@ export default {
   text-align: left;
 }
 
+.game-legend {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+  border-radius: 10px;
+  text-align: left;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
 .leaderboard h3 {
   margin-bottom: 1rem;
   color: #333;
@@ -454,6 +569,121 @@ export default {
 
 .record-date {
   color: #999;
+  font-size: 0.8rem;
+}
+
+.clear-records-btn {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 1rem;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.3s;
+}
+
+.clear-records-btn:hover {
+  background: #c0392b;
+}
+
+.no-records {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #666;
+  font-style: italic;
+}
+
+.no-records p {
+  margin: 0.5rem 0;
+}
+
+/* Game Legend Styles */
+.game-legend h3 {
+  margin-bottom: 1rem;
+  color: #333;
+  text-align: center;
+}
+
+.legend-section {
+  margin-bottom: 1rem;
+}
+
+.legend-section h4 {
+  margin-bottom: 0.5rem;
+  color: #555;
+  font-size: 1rem;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.25rem;
+}
+
+.legend-item {
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.legend-key {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 3px;
+  padding: 0.1rem 0.3rem;
+  font-family: monospace;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #495057;
+}
+
+.legend-difficulty {
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.legend-difficulty.easy {
+  background: rgba(40, 167, 69, 0.2);
+  color: #28a745;
+  border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.legend-difficulty.medium {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.legend-difficulty.hard {
+  background: rgba(220, 53, 69, 0.2);
+  color: #dc3545;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.legend-difficulty.survivor {
+  background: rgba(0, 123, 255, 0.2);
+  color: #007bff;
+  border: 1px solid rgba(0, 123, 255, 0.3);
+}
+
+.legend-ability {
+  background: rgba(255, 215, 0, 0.2);
+  color: #FFD700;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.legend-mechanic {
+  background: rgba(108, 117, 125, 0.2);
+  color: #6c757d;
+  border: 1px solid rgba(108, 117, 125, 0.3);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-weight: bold;
   font-size: 0.8rem;
 }
 
@@ -556,6 +786,15 @@ export default {
 
 .control-btn.restart {
   background: #6c757d;
+}
+
+.control-btn.next-level {
+  background: #28a745;
+}
+
+.control-btn.next-level:hover {
+  background: #218838;
+  transform: translateY(-1px);
 }
 
 .overlay {

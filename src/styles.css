@@ -61,7 +61,7 @@
   --font-size-4xl: 2.5rem;
   
   /* Game Specific */
-  --game-container-size: min(90vw, 90vh, 600px);
+  --game-container-size: min(70vw, 60vh, 500px);
   --border-thickness: 3px;
 }
 
@@ -122,8 +122,9 @@ body::before {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: var(--spacing-lg);
+  justify-content: flex-start;
+  padding: var(--spacing-md);
+  padding-top: var(--spacing-lg);
 }
 
 /* Game Screen */
@@ -131,10 +132,10 @@ body::before {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   width: 100%;
-  max-width: 800px;
-  padding: var(--spacing-lg);
+  max-width: 600px;
+  padding: var(--spacing-md);
 }
 
 /* Controls */
@@ -953,7 +954,7 @@ body::before {
 
 @media (max-width: 480px) {
   :root {
-    --game-container-size: min(95vw, 95vh, 400px);
+    --game-container-size: min(90vw, 70vh, 400px);
     --font-size-4xl: 2rem;
     --font-size-3xl: 1.75rem;
   }

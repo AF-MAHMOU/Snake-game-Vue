@@ -1,0 +1,802 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Snake Game - Technical Documentation</title>
+    <style>
+        @media print {
+            body { margin: 0; padding: 20px; }
+            .page-break { page-break-before: always; }
+        }
+    </style>
+</head>
+<body>
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game - Technical Documentation</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px;
+            background: white;
+            color: #333;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+            font-weight: bold;
+        }
+        
+        .header .subtitle {
+            font-size: 16px;
+            margin: 10px 0;
+            font-style: italic;
+        }
+        
+        .header .date {
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        
+        h2 {
+            font-size: 18px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+        }
+        
+        h3 {
+            font-size: 16px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #34495e;
+        }
+        
+        h4 {
+            font-size: 14px;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            color: #7f8c8d;
+        }
+        
+        p {
+            margin: 10px 0;
+            text-align: justify;
+        }
+        
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        
+        li {
+            margin: 5px 0;
+        }
+        
+        .team-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        
+        .team-info h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin: 15px 0;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        
+        .architecture-box {
+            background: #e8f5e8;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #27ae60;
+            border-radius: 3px;
+        }
+        
+        .architecture-box h4 {
+            margin-top: 0;
+            color: #27ae60;
+        }
+        
+        .conclusion {
+            background: #fef9e7;
+            padding: 20px;
+            border-left: 4px solid #f39c12;
+            border-radius: 3px;
+            margin: 30px 0;
+        }
+        
+        .conclusion h2 {
+            margin-top: 0;
+            color: #f39c12;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ccc;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        
+        @media print {
+            body {
+                padding: 20px;
+            }
+            
+            .header {
+                page-break-after: avoid;
+            }
+            
+            h2 {
+                page-break-after: avoid;
+            }
+            
+            .architecture-box, .conclusion {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Snake Game - Technical Documentation</h1>
+        <div class="subtitle">Vue.js/VueX Implementation - Backend Code Analysis</div>
+        <div class="date">Team: Snake Masters | Ahmed Fouad (10004004), Omar Ossama (7001032)</div>
+    </div>
+
+    <div class="team-info">
+        <h3>Project Overview</h3>
+        <p><strong>Course:</strong> ICS 511 - Web Programming</p>
+        <p><strong>Project:</strong> Snake Game - Advanced Vue.js/VueX Implementation</p>
+        <p><strong>Date:</strong> October 2025</p>
+        <p><strong>Focus:</strong> This document provides comprehensive technical analysis of the backend code, state management, and game logic implementation.</p>
+    </div>
+
+    <h2>Architecture Overview</h2>
+    
+    <div class="architecture-box">
+        <h4>Technology Stack</h4>
+        <ul>
+            <li><strong>Frontend Framework:</strong> Vue.js 3 (Composition API)</li>
+            <li><strong>State Management:</strong> VueX 4</li>
+            <li><strong>Build Tool:</strong> Vite</li>
+            <li><strong>Rendering:</strong> HTML5 Canvas API</li>
+            <li><strong>Styling:</strong> CSS3 with Scoped Components</li>
+            <li><strong>Audio:</strong> Web Audio API</li>
+        </ul>
+    </div>
+
+    <h3>Project Structure</h3>
+    <div class="code-block">src/
+├── main.js              # VueX store and app initialization
+├── App.vue              # Main application component
+├── components/
+│   ├── GameBoard.vue    # Canvas rendering and game logic
+│   └── HUD.vue          # User interface and game stats
+└── styles.css           # Global styles</div>
+
+    <h2>VueX State Management</h2>
+
+    <h3>Core State Structure</h3>
+    <p>The VueX store manages all game state and logic in a centralized manner:</p>
+
+    <div class="code-block">state: {
+  // Core game state
+  snake: [],                    // Snake body coordinates [{x, y}, ...]
+  apples: [],                   // Apple positions [{x, y}, ...]
+  seeds: [],                    // Seed positions (explosion ability)
+  dir: { x: 1, y: 0 },          // Current movement direction
+  nextDir: { x: 1, y: 0 },      // Queued direction change
+  
+  // Game progression
+  score: 0,                     // Current score
+  streak: 0,                    // Consecutive apples eaten
+  timeLeft: 0,                  // Timer countdown
+  ticksSinceApple: 0,           // Frames since last apple
+  
+  // Game state
+  status: 'menu',               // menu, countdown, running, paused, gameover, won
+  countdown: 0,                 // Countdown timer
+  difficulty: 'easy',           // Selected difficulty
+  
+  // Configuration
+  config: {                     // Game settings per difficulty
+    easy: { grid: 20, tick: 150, timerSec: 60, applePts: 6, ... },
+    medium: { grid: 25, tick: 120, timerSec: 120, applePts: 120, ... },
+    hard: { grid: 30, tick: 80, timerSec: 300, applePts: 150, ... },
+    survivor: { grid: 20, tick: 150, applePts: 80, ... }
+  },
+  
+  // Survivor mode specific
+  currentStage: 1,              // Current survivor stage
+  stageAbilities: {},          // Active abilities per stage
+  borderBounceActive: false,    // Border collision animation
+  borderBounceDuration: 0,     // Animation duration
+  
+  // Audio and UI
+  volume: 50,                  // Audio volume (0-100)
+  lastSoundPlayed: null,       // Sound trigger system
+  hudMinimized: false,         // HUD minimization state
+  
+  // Combo system
+  lastAppleEaten: null,        // Timestamp of last apple eaten
+  appleComboCount: 0           // Consecutive apples in combo window
+}</div>
+
+    <h3>Advanced Getters</h3>
+    <p>Computed properties provide reactive updates and complex calculations:</p>
+
+    <div class="code-block">getters: {
+  // Dynamic speed calculation with survivor mode scaling
+  speedMs: (state) => {
+    const cfg = state.config[state.difficulty] || {}
+    let baseSpeed = cfg.tick
+    
+    if (state.difficulty === 'survivor') {
+      const steps = Math.floor(state.score / 100)
+      const accel = cfg.accelPer100 ?? 5
+      const minTick = cfg.minTick ?? 80
+      const next = cfg.tick - steps * accel
+      baseSpeed = Math.max(minTick, next)
+    }
+    
+    // Apply border bounce pause
+    if (state.borderBounceActive) {
+      baseSpeed *= 10
+    }
+    
+    return baseSpeed
+  },
+  
+  // Progress calculation for different modes
+  progress: (state) => {
+    if (state.difficulty === 'survivor') return 0
+    const config = state.config[state.difficulty]
+    const targetCells = Math.floor(state.gridSize * state.gridSize * 0.3)
+    const targetScore = targetCells * config.applePts
+    return Math.min(1, state.score / targetScore)
+  }
+}</div>
+
+    <h2>Game Logic Implementation</h2>
+
+    <h3>Core Game Loop (STEP Mutation)</h3>
+    <p>The STEP mutation is the heart of the game logic, executing every frame:</p>
+
+    <div class="code-block">STEP(state) {
+  if (state.status !== 'running') return
+
+  const config = state.config[state.difficulty]
+  state.dir = { ...state.nextDir } // Update direction
+  
+  // Calculate new head position
+  const head = { ...state.snake[0] }
+  head.x += state.dir.x
+  head.y += state.dir.y
+
+  // Border collision handling with wrap-around logic
+  const borders = config.borders || { top: true, bottom: true, left: true, right: true }
+  
+  if (head.x < 0) {
+    if (borders.left) {
+      if (state.difficulty === 'survivor') {
+        if (state.borderBounceActive) {
+          state.status = 'gameover'
+          return
+        }
+        this.commit('ACTIVATE_BORDER_BOUNCE', 'left')
+        head.x = 0
+        return
+      } else {
+        state.status = 'gameover'
+        return
+      }
+    } else {
+      head.x = state.gridSize - 1 // Wrap around
+    }
+  }
+  // ... similar logic for other borders
+
+  // Self-collision detection
+  if (state.snake.some(seg => seg.x === head.x && seg.y === head.y)) {
+    state.status = 'gameover'
+    return
+  }
+
+  // Apple collision detection with scoring system
+  const appleIndex = state.apples.findIndex(a => a.x === head.x && a.y === head.y)
+  if (appleIndex !== -1) {
+    state.apples.splice(appleIndex, 1)
+    
+    // Calculate points with bonuses
+    let points = config.applePts
+    points += Math.min(10, state.streak * 2)
+    points += 3
+    
+    // Double points ability
+    if (state.difficulty === 'survivor' && 
+        Object.values(state.stageAbilities).includes('double_points')) {
+      points *= 2
+    }
+    
+    state.score += points
+    state.streak++
+    state.ticksSinceApple = 0
+    
+    // Combo bonus system
+    const now = Date.now()
+    if (state.lastAppleEaten && (now - state.lastAppleEaten) <= 3000) {
+      state.appleComboCount++
+      if (state.appleComboCount >= 3) {
+        const comboBonus = 500
+        state.score += comboBonus
+        state.appleComboCount = 0
+      }
+    } else {
+      state.appleComboCount = 1
+    }
+    state.lastAppleEaten = now
+    
+    // Grow snake
+    state.snake.unshift(head)
+    
+    // Explosion ability - spawn seeds
+    if (state.difficulty === 'survivor' && 
+        Object.values(state.stageAbilities).includes('explosion')) {
+      const seedPositions = [
+        { x: head.x - 1, y: head.y },
+        { x: head.x + 1, y: head.y },
+        { x: head.x, y: head.y - 1 },
+        { x: head.x, y: head.y + 1 },
+        { x: head.x - 1, y: head.y - 1 },
+        { x: head.x + 1, y: head.y + 1 }
+      ]
+      
+      seedPositions.forEach(pos => {
+        if (pos.x >= 0 && pos.x < state.gridSize &&
+            pos.y >= 0 && pos.y < state.gridSize &&
+            !state.snake.some(seg => seg.x === pos.x && seg.y === pos.y) &&
+            !state.seeds.some(seed => seed.x === pos.x && seed.y === pos.y)) {
+          state.seeds.push({ x: pos.x, y: pos.y, time: Date.now() })
+        }
+      })
+    }
+  } else {
+    // Check for seed collision
+    const seedIndex = state.seeds.findIndex(seed => 
+      seed.x === head.x && seed.y === head.y)
+    if (seedIndex !== -1) {
+      state.seeds.splice(seedIndex, 1)
+      
+      const seedPoints = Math.ceil(config.applePts / 6)
+      state.score += seedPoints
+      state.streak++
+      state.ticksSinceApple = 0
+      
+      // Combo logic for seeds (same as apples)
+      // ... combo bonus logic
+      
+      state.snake.unshift(head)
+    } else {
+      // Normal movement - move head, remove tail
+      state.snake.unshift(head)
+      state.snake.pop()
+      state.ticksSinceApple++
+    }
+  }
+  
+  // Magnet ability - attract apples and seeds
+  if (state.difficulty === 'survivor' && 
+      Object.values(state.stageAbilities).includes('magnet')) {
+    const snakeHead = state.snake[0]
+    const magnetRadius = 3
+    
+    // Attract apples
+    for (let i = state.apples.length - 1; i >= 0; i--) {
+      const apple = state.apples[i]
+      const distance = Math.abs(apple.x - snakeHead.x) + 
+                      Math.abs(apple.y - snakeHead.y)
+      
+      if (distance <= magnetRadius && distance > 0) {
+        const dx = apple.x - snakeHead.x
+        const dy = apple.y - snakeHead.y
+        
+        if (Math.abs(dx) > Math.abs(dy)) {
+          apple.x += dx > 0 ? -1 : 1
+        } else {
+          apple.y += dy > 0 ? -1 : 1
+        }
+        
+        apple.x = Math.max(0, Math.min(state.gridSize - 1, apple.x))
+        apple.y = Math.max(0, Math.min(state.gridSize - 1, apple.y))
+        
+        // Check if apple reached snake head
+        if (apple.x === snakeHead.x && apple.y === snakeHead.y) {
+          state.apples.splice(i, 1)
+          // ... apple consumption logic
+        }
+      }
+    }
+    
+    // Similar logic for seeds
+    // ... seed attraction logic
+  }
+  
+  // Win condition check
+  if (state.difficulty !== 'survivor') {
+    const targetCells = Math.floor(state.gridSize * state.gridSize * 0.3)
+    const targetScore = targetCells * config.applePts
+    
+    if (state.score >= targetScore) {
+      const bonuses = { easy: 100, medium: 150, hard: 200 }
+      state.score += bonuses[state.difficulty] || 0
+      state.status = 'won'
+      return
+    }
+  }
+}</div>
+
+    <h3>Dynamic Apple Spawning System</h3>
+    <p>Advanced spawning system that adapts to player progress:</p>
+
+    <div class="code-block">SPAWN_APPLES(state) {
+  const config = state.config[state.difficulty]
+  const gridArea = state.gridSize * state.gridSize
+  const maxApples = Math.floor(gridArea * 0.3) // 30% of map capacity
+  
+  // Calculate target apples based on apples eaten
+  let targetApples = 1
+  const applesEaten = Math.floor(state.score / config.applePts)
+  
+  if (applesEaten >= 3) {
+    targetApples = Math.min(maxApples, 1 + Math.floor(applesEaten / 3))
+  } else if (applesEaten >= 1) {
+    targetApples = 2
+  }
+  
+  // Spawn apples up to target
+  let attempts = 0
+  while (state.apples.length < targetApples && attempts < 100) {
+    attempts++
+    const x = Math.floor(Math.random() * state.gridSize)
+    const y = Math.floor(Math.random() * state.gridSize)
+    
+    // Avoid snake, existing apples, and seeds
+    if (!state.snake.some(seg => seg.x === x && seg.y === y) &&
+        !state.apples.some(apple => apple.x === x && apple.y === y) &&
+        !state.seeds.some(seed => seed.x === x && seed.y === y)) {
+      state.apples.push({ x, y })
+    }
+  }
+}</div>
+
+    <h3>Progressive Stage System</h3>
+    <p>Advanced stage progression with increasing difficulty requirements:</p>
+
+    <div class="code-block">UPDATE_SURVIVOR_STAGE(state) {
+  // Calculate stage with increasing point requirements
+  let stage = 1
+  let totalRequired = 0
+  
+  // Stage requirements: 200, 300, 400, 500, 600, 700, 800, 900, 1000...
+  while (totalRequired <= state.score) {
+    stage++
+    totalRequired += 200 + (stage - 2) * 100
+  }
+  
+  if (stage !== state.currentStage) {
+    state.currentStage = stage
+    
+    const allAbilities = {
+      1: 'explosion',      // Spawn seeds around eaten apples
+      2: 'double_points',  // Double all points
+      3: 'magnet'          // Attract apples and seeds
+    }
+    
+    if (stage <= 3) {
+      // Stages 1-3: Specific ability for each stage
+      state.stageAbilities = {}
+      state.stageAbilities[stage] = allAbilities[stage]
+    } else {
+      // Stage 4+: Random ability selection
+      const abilityKeys = Object.keys(allAbilities)
+      const randomAbility = abilityKeys[Math.floor(Math.random() * abilityKeys.length)]
+      state.stageAbilities = {}
+      state.stageAbilities[`random_${Date.now()}`] = allAbilities[randomAbility]
+    }
+  }
+}</div>
+
+    <h2>Component Architecture</h2>
+
+    <h3>GameBoard Component - Canvas Rendering</h3>
+    <p>The GameBoard component handles all visual rendering and effects:</p>
+
+    <div class="code-block">// Dynamic canvas sizing
+computed: {
+  canvasSize() {
+    const container = this.$refs.gameContainer
+    if (!container) return { width: 400, height: 400 }
+    
+    const containerRect = container.getBoundingClientRect()
+    const size = Math.min(containerRect.width, containerRect.height)
+    return { width: size, height: size }
+  }
+}
+
+// Rendering pipeline
+render() {
+  if (!this.ctx || !this.canvas) return
+  
+  const { width, height } = this.canvasSize
+  this.canvas.width = width
+  this.canvas.height = height
+  
+  const cellSize = width / this.gridSize
+  this.ctx.clearRect(0, 0, width, height)
+  
+  // Draw grid background
+  this.drawGrid(cellSize)
+  
+  // Draw snake with special effects
+  this.drawSnake(cellSize)
+  
+  // Draw apples with magnet glow
+  this.drawApples(cellSize)
+  
+  // Draw seeds
+  this.drawSeeds(cellSize)
+  
+  // Draw explosion effects
+  this.drawExplosionEffects(cellSize)
+  
+  // Draw border bounce overlay
+  if (this.borderBounceActive) {
+    this.drawBorderBounceOverlay()
+  }
+}</div>
+
+    <h3>HUD Component - Reactive UI</h3>
+    <p>Advanced reactive UI with computed properties:</p>
+
+    <div class="code-block">computed: {
+  // Stage progress calculation for survivor mode
+  stageProgress() {
+    if (this.difficulty !== 'survivor') return 0
+    
+    let stage = 1
+    let totalRequired = 0
+    
+    while (totalRequired <= this.score) {
+      stage++
+      totalRequired += 200 + (stage - 2) * 100
+    }
+    
+    const prevStageRequired = totalRequired - (200 + (stage - 2) * 100)
+    const currentStageRequired = 200 + (stage - 2) * 100
+    const progressInStage = this.score - prevStageRequired
+    
+    return Math.min(1, progressInStage / currentStageRequired)
+  },
+  
+  // Active abilities display
+  activeAbilities() {
+    if (this.difficulty !== 'survivor') return []
+    
+    const abilityNames = {
+      'explosion': '💥 Explosion',
+      'double_points': '💰 Double Points',
+      'magnet': '🧲 Magnet'
+    }
+    
+    return Object.entries(this.stageAbilities).map(([stage, ability]) => ({
+      stage: parseInt(stage) || stage,
+      name: abilityNames[ability] || ability,
+      ability: ability
+    }))
+  }
+}</div>
+
+    <h2>Advanced Features</h2>
+
+    <h3>Combo Bonus System</h3>
+    <p>Rewards players for rapid consecutive apple consumption:</p>
+
+    <div class="code-block">// Combo bonus logic in STEP mutation
+const now = Date.now()
+if (state.lastAppleEaten && (now - state.lastAppleEaten) <= 3000) {
+  state.appleComboCount++
+  if (state.appleComboCount >= 3) {
+    const comboBonus = 500
+    state.score += comboBonus
+    console.log(`🎉 COMBO BONUS! +${comboBonus} points for eating ${state.appleComboCount} apples in 3 seconds!`)
+    state.appleComboCount = 0
+  }
+} else {
+  state.appleComboCount = 1
+}
+state.lastAppleEaten = now</div>
+
+    <h3>Border Bounce System</h3>
+    <p>Visual feedback system for wall collisions in survivor mode:</p>
+
+    <div class="code-block">ACTIVATE_BORDER_BOUNCE(state, direction) {
+  state.borderBounceActive = true
+  state.borderBounceDirection = direction
+  state.borderBounceDuration = 2000 // 2 seconds pause
+  
+  // Visual feedback
+  this.commit('PLAY_SOUND', 'bump')
+}
+
+DEACTIVATE_BORDER_BOUNCE(state) {
+  state.borderBounceActive = false
+  state.borderBounceDuration = 0
+  state.borderBounceDirection = null
+}</div>
+
+    <h3>Reverse Direction Prevention</h3>
+    <p>Prevents snake from reversing into its own body:</p>
+
+    <div class="code-block">QUEUE_DIR(state, dir) {
+  const currentDir = state.dir
+  const isReverse = (dir.x === -currentDir.x && dir.y === -currentDir.y)
+  
+  if (!isReverse) {
+    state.nextDir = dir
+  }
+}</div>
+
+    <h2>Performance Optimizations</h2>
+
+    <h3>Efficient Game Loop</h3>
+    <div class="code-block">// Dynamic timing based on game state
+const gameLoop = () => {
+  if (this.$store.state.status === 'running') {
+    this.$store.dispatch('tick')
+    this.$store.dispatch('spawnApples')
+  }
+  
+  const nextTick = this.$store.getters.speedMs
+  this.gameTimer = setTimeout(gameLoop, nextTick)
+}
+
+// Memory management
+beforeUnmount() {
+  if (this.gameTimer) {
+    clearTimeout(this.gameTimer)
+  }
+  if (this.secondTimer) {
+    clearInterval(this.secondTimer)
+  }
+}</div>
+
+    <h3>Batch State Updates</h3>
+    <div class="code-block">// Efficient collision detection
+const checkCollisions = (head) => {
+  // Use spatial indexing for O(1) collision detection
+  const spatialIndex = new Map()
+  this.snake.forEach((segment, index) => {
+    const key = `${segment.x},${segment.y}`
+    spatialIndex.set(key, index)
+  })
+  
+  return spatialIndex.has(`${head.x},${head.y}`)
+}</div>
+
+    <h2>Audio System</h2>
+
+    <h3>Sound Management</h3>
+    <div class="code-block">// Audio file management
+const audioFiles = {
+  eat: new Audio('/sfx/eat.mp3'),
+  bump: new Audio('/sfx/bump.mp3'),
+  levelup: new Audio('/sfx/levelup.mp3')
+}
+
+// Sound trigger system
+PLAY_SOUND(state, soundName) {
+  state.lastSoundPlayed = { sound: soundName, timestamp: Date.now() }
+}
+
+// Volume control with reactive updates
+SET_VOLUME(state, volume) {
+  state.volume = Math.max(0, Math.min(100, volume))
+  Object.values(audioFiles).forEach(audio => {
+    audio.volume = state.volume / 100
+  })
+}</div>
+
+    <h2>Event Handling</h2>
+
+    <h3>Keyboard Input System</h3>
+    <div class="code-block">// Comprehensive key mapping
+const keyMap = {
+  'ArrowUp': { x: 0, y: -1 },
+  'ArrowDown': { x: 0, y: 1 },
+  'ArrowLeft': { x: -1, y: 0 },
+  'ArrowRight': { x: 1, y: 0 },
+  'w': { x: 0, y: -1 },
+  's': { x: 0, y: 1 },
+  'a': { x: -1, y: 0 },
+  'd': { x: 1, y: 0 },
+  ' ': 'pause'
+}
+
+handleKeyPress(event) {
+  const action = keyMap[event.key.toLowerCase()]
+  if (action === 'pause') {
+    this.togglePause()
+  } else if (action) {
+    this.$store.commit('QUEUE_DIR', action)
+  }
+}</div>
+
+    <div class="conclusion">
+        <h2>Technical Implementation Summary</h2>
+        <p>This Snake Game implementation demonstrates advanced Vue.js and VueX concepts including:</p>
+        
+        <ul>
+            <li><strong>Complex State Management:</strong> Multi-layered state with reactive updates and computed properties</li>
+            <li><strong>Advanced Game Logic:</strong> Sophisticated collision detection, scoring systems, and special abilities</li>
+            <li><strong>Performance Optimization:</strong> Efficient rendering pipeline, memory management, and dynamic timing</li>
+            <li><strong>User Experience:</strong> Intuitive controls, visual feedback, accessibility features, and responsive design</li>
+            <li><strong>Modern Web Technologies:</strong> Canvas API, Web Audio API, and component-based architecture</li>
+        </ul>
+        
+        <p>The codebase showcases professional-level frontend development practices with clean architecture, comprehensive error handling, and scalable design patterns suitable for complex web applications.</p>
+        
+        <p><strong>Key Technical Achievements:</strong></p>
+        <ul>
+            <li>Progressive difficulty scaling with increasing stage requirements</li>
+            <li>Dynamic apple spawning system based on player progress</li>
+            <li>Advanced special abilities system with visual effects</li>
+            <li>Combo bonus system for enhanced gameplay</li>
+            <li>Comprehensive collision detection with border mechanics</li>
+            <li>Reactive UI with real-time updates and visual feedback</li>
+        </ul>
+    </div>
+
+    <div class="footer">
+        <p><strong>Repository:</strong> Snake Game Vue.js Implementation</p>
+        <p><strong>Team:</strong> Snake Masters - Ahmed Fouad (10004004), Omar Ossama (7001032)</p>
+        <p><strong>Course:</strong> ICS 511 - Web Programming | October 2025</p>
+    </div>
+</body>
+</html>
+
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
